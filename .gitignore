@@ -17,3 +17,6 @@ target/
 **/.DS_Store
 **/desktop.ini
 **/thumbs.db
+
+### puzzle inputs
+/src/main/resources/inputs/
