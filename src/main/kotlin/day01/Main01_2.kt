@@ -1,9 +1,9 @@
 package day01
 
-import utils.readInput
+import utils.readLinesFromResource
 
 fun main() {
-    val input = readInput("/inputs/day01/1puzzle.txt")
+    val input = readLinesFromResource("/inputs/day01/1puzzle.txt")
 
     var password = 0
     var current = 50
