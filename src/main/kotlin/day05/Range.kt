@@ -1,7 +1,8 @@
 package day05
 
-class Range(private val from: Long, private val to: Long) {
+data class Range(var from: Long, val to: Long) {
     fun contains(toCheck: Long) = toCheck in from..to
+    fun count(): Long = to - from + 1
 }
 
 fun MutableSet<Range>.evaluateAndAddRange(it: String) {
