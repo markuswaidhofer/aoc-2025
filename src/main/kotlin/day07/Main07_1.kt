@@ -37,7 +37,7 @@ fun main() {
         }
     }
 
-    println("Anser is $count")
+    println("Answer is $count")
 
 
 }
