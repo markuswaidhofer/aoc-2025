@@ -5,18 +5,26 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 fun main() {
-    val boxes = readLinesFromResource("/inputs/day08/8example.txt")
-        .map { val parts = it.split(","); Box(parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble()) }
+    val boxes = readLinesFromResource("/inputs/day08/8puzzle.txt")
+        .mapIndexed {i, it -> val parts = it.split(","); Box('A' + i, parts[0].toDouble(), parts[1].toDouble(), parts[2].toDouble()) }
 
     boxes.forEach { it.calculateDistances(boxes) }
 
-    val shortestConnection = boxes.minOf { it.findMinDistance() }
+    repeat(1000) {
+        val shortestConnection = boxes.minOf { it.findMinDistance() }
+        shortestConnection.a.connect(shortestConnection.b)
+    }
 
-    println(shortestConnection)
+    val circuits = boxes.map { it.circuit }.distinct().sortedBy { -it.size }
+    // println("${circuits.size} Circuits: ")
+    // circuits.forEach { c -> println("${c.size}: " + c.map { it.name } ) }
+
+    val result = circuits.take(3).map { it.size.toLong() }.reduce { a, b -> a * b }
+    println("Answer is $result")
 }
 
-data class Box(val x: Double, val y: Double, val z: Double) {
-    val connections: MutableList<Box> = mutableListOf<Box>()
+data class Box(val name: Char, val x: Double, val y: Double, val z: Double) {
+    var circuit: MutableSet<Box> = mutableSetOf<Box>(this)
 
     val distancePerUnconnectedBox = mutableMapOf<Box, Double>()
 
@@ -33,6 +41,15 @@ data class Box(val x: Double, val y: Double, val z: Double) {
         val minEntry = distancePerUnconnectedBox.minBy { it.value }
         return Connection(minEntry.value, minEntry.key, this)
     }
+
+    fun connect(other: Box) {
+        distancePerUnconnectedBox.remove(other)
+        other.distancePerUnconnectedBox.remove(this)
+        circuit.addAll(other.circuit)
+        circuit.forEach { box -> box.circuit = this.circuit }
+        // println("Connecting ${this.name} with ${other.name}, circuit size is now ${circuit.size}")
+    }
+
 }
 
 data class Connection(val distance: Double, val a: Box, val b: Box): Comparable<Connection> {
