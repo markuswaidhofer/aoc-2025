@@ -1,7 +1,7 @@
 package day09
 
 import utils.readLinesFromResource
-import java.awt.Polygon
+import java.awt.geom.Path2D
 
 
 fun main() {
@@ -25,12 +25,12 @@ fun main() {
     println("Answer is $largest")
 }
 
-fun createPolygon(tiles: List<Tile>): Polygon {
-    val polygon = Polygon()
+fun createPolygon(tiles: List<Tile>): Path2D {
+    val polygon = Path2D.Double()
 
     val mutableTiles = tiles.toMutableList()
     var current = mutableTiles[0]
-    polygon.addPoint(current.x.toInt(), current.y.toInt())
+    polygon.moveTo(current.x.toDouble(), current.y.toDouble())
     mutableTiles.removeAt(0)
 
     while(mutableTiles.isNotEmpty()) {
@@ -39,13 +39,14 @@ fun createPolygon(tiles: List<Tile>): Polygon {
             val toCompare = mutableTiles[i]
             if(current.x == toCompare.x || current.y == toCompare.y) {
                 current = mutableTiles[i]
-                polygon.addPoint(current.x.toInt(), current.y.toInt())
+                polygon.lineTo(current.x.toDouble(), current.y.toDouble())
                 mutableTiles.removeAt(0)
                 break
             }
             i++
         }
     }
+    polygon.closePath()
 
     return polygon
 }

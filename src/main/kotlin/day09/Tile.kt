@@ -1,14 +1,8 @@
 package day09
 
-import java.awt.Polygon
-import java.awt.geom.Point2D
-import kotlin.collections.get
-import kotlin.compareTo
+import java.awt.geom.Path2D
+import java.awt.geom.Rectangle2D
 import kotlin.math.abs
-import kotlin.math.min
-import kotlin.text.get
-import kotlin.text.toDouble
-import kotlin.times
 
 data class Tile(val x: Long, val y: Long) {
     fun calculateArea(other: Tile): Long = width(other) * height(other)
@@ -17,25 +11,33 @@ data class Tile(val x: Long, val y: Long) {
 
     private fun height(other: Tile): Long = (abs(y - other.y) + 1)
 
-    fun isWithin(polygon: Polygon, other: Tile): Boolean {
+    fun isWithin(polygon: Path2D, other: Tile): Boolean {
         // adapt because contains does not allow the point to be exactly on the border
         val addToThisX = (if(this.x == other.x) 0 else if(this.x < other.x) 0.1 else -0.1).toDouble()
         val addToThisY = (if(this.y == other.y) 0 else if(this.y < other.y) 0.1 else -0.1).toDouble()
         val addToOtherX = -addToThisX
         val addToOtherY = -addToThisY
 
-        val points = listOf(
-            Point2D.Double(x.toDouble() + addToThisX, y.toDouble() + addToThisY),
-            Point2D.Double(x.toDouble() + addToThisX, other.y.toDouble() + addToOtherY),
-            Point2D.Double(other.x.toDouble() + addToOtherX, y.toDouble() + addToThisY),
-            Point2D.Double(other.x.toDouble() + addToOtherX, other.y.toDouble() + addToOtherY),
+        val rectangle = rectangleFromPoints(
+            x.toDouble() + addToThisX to y.toDouble() + addToThisY,
+            x.toDouble() + addToThisX to other.y.toDouble() + addToOtherY,
+            other.x.toDouble() + addToOtherX to y.toDouble() + addToThisY,
+            other.x.toDouble() + addToOtherX to other.y.toDouble() + addToOtherY,
         )
 
-        for(point in points) {
-            if(!polygon.contains(point)) {
-                return false
-            }
-        }
-        return true
+        val contains = polygon.contains(rectangle)
+        return contains
+    }
+
+    private fun rectangleFromPoints(vararg points: Pair<Double, Double>): Rectangle2D.Double {
+        val xs = points.map { it.first }
+        val ys = points.map { it.second }
+        val minX = xs.min()
+        val minY = ys.min()
+        val maxX = xs.max()
+        val maxY = ys.max()
+        return Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY)
     }
 }
+
+
