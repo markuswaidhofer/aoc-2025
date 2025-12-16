@@ -11,7 +11,7 @@ class Machine(val expectedIndicatorLights: String, val buttons: List<Button>) {
         var min = Int.MAX_VALUE
         val possibleCombinations = 2.0.pow(buttons.size).toInt()
 
-        var combination = 0;
+        var combination = 0
         while (combination < possibleCombinations) {
             val actualIndicatorLights: MutableList<Char> = turnedOffIndicatorLights()
 
