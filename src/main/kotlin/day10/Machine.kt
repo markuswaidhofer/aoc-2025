@@ -8,8 +8,6 @@ private const val OFF = '.'
 class Machine(val expectedIndicatorLights: String, val expectedJoltageRequirements: List<Int>, val buttons: List<Button>) {
 
     var minJoltageButtonPresses: Int = Int.MAX_VALUE
-    val maxJoltageButtonPresses = expectedJoltageRequirements.max()
-
 
     fun calculateMinSwitches(): Int {
         var min = Int.MAX_VALUE
@@ -22,13 +20,13 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
             var buttonPresses = 0
             val useButton = List(buttons.size) { (combination shr it) and 1 == 1 }
             buttons.forEachIndexed { buttonIndex, button ->
-                if(useButton[buttonIndex]) {
+                if (useButton[buttonIndex]) {
                     pushButton(button, actualIndicatorLights)
                     buttonPresses++
                 }
             }
 
-            if(actualEqualsExpected(actualIndicatorLights) && buttonPresses < min) {
+            if (actualEqualsExpected(actualIndicatorLights) && buttonPresses < min) {
                 min = buttonPresses
             }
 
@@ -43,31 +41,53 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
 
         val currentButton = 0
         val buttonPresses = 0
+        // println("Goal: " + expectedJoltageRequirements)
         pressButton(currentButton, buttonPresses, currentJoltages)
 
         return minJoltageButtonPresses
     }
 
-    fun pressButton(currentButton: Int, buttonPresses: Int, currentJoltages: MutableList<Int>) {
-        currentJoltages.increase(buttons[currentButton])
-        val newButtonPresses = buttonPresses + 1
+    fun pressButton(currentButtonIndex: Int, totalButtonPresses: Int, currentJoltages: MutableList<Int>) {
+        val currentButton = buttons[currentButtonIndex]
+        // println("Handling button $currentButtonIndex = $currentButton")
+        // println("We are at $currentJoltages")
 
-        if(currentJoltages == expectedJoltageRequirements && newButtonPresses < minJoltageButtonPresses) {
-            minJoltageButtonPresses = newButtonPresses
+        // repeat pushing the button until no longer possible
+        var currentButtonPresses = 0
+        var newTotalButtonPresses = totalButtonPresses
+        while (!joltagesExceeded(currentJoltages)) {
+            currentJoltages.increase(currentButton)
+            newTotalButtonPresses++
+            currentButtonPresses++
+            // println("Tapped button and now we are at $currentJoltages")
+
+            if (currentJoltages == expectedJoltageRequirements && newTotalButtonPresses < minJoltageButtonPresses) {
+                minJoltageButtonPresses = newTotalButtonPresses
+                // println("Found solution, new minimum = $newTotalButtonPresses")
+            }
         }
 
-        // TODO continue here - basically, i need to recursively press buttons. keep pushing the same button. if it went over the
-        // maximum, we are in decreasing mode. decrease by one and move to the next button. if decreasing hits zero, go to previous button
-        // and continue that by one. continue until there is no button left to decrease (i.e. decreasing the first button will end the recursion)
+        // remove one button press of current and move to next button
+        while (currentButtonPresses > 0) {
+            currentJoltages.decrease(currentButton)
+            // println("Removed button and now we are at $currentJoltages")
+            newTotalButtonPresses--
+            currentButtonPresses--
+            if (currentButtonIndex + 1 < buttons.size) { // there is a next button
+                pressButton(currentButtonIndex + 1, newTotalButtonPresses, currentJoltages)
+            }
+        }
 
+        // println("Done with $currentButtonIndex")
     }
 
-
+    private fun joltagesExceeded(currentJoltages: MutableList<Int>): Boolean =
+        currentJoltages.mapIndexed { index, joltage -> joltage > expectedJoltageRequirements[index] }.any { it }
 
     private fun pushButton(button: Button, actualIndicatorLights: MutableList<Char>) {
         button.switches.forEach { switchIndex ->
             val current = actualIndicatorLights[switchIndex]
-            val toSet = if(current == ON) OFF else ON
+            val toSet = if (current == ON) OFF else ON
             actualIndicatorLights.removeAt(switchIndex)
             actualIndicatorLights.add(switchIndex, toSet)
         }

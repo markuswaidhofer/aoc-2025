@@ -8,6 +8,5 @@ fun toMachine(line: String): Machine {
     val buttons = rawButtons.map { str -> Button(str.substring(1, str.length - 1).split(',').map { it.toInt() }) }
     val rawJoltage = line.substring(indexOpeningCurlyBracket + 1, line.length - 1)
     val expectedJoltage = rawJoltage.split(',').map { it.toInt() }
-    println(expectedJoltage)
     return Machine(expectedIndicatorLights, expectedJoltage, buttons)
 }
