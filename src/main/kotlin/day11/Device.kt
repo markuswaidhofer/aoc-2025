@@ -1,31 +1,27 @@
 package day11
 
-data class Device(val name: String){
+data class Device(val name: String) {
     val connectedDevices = mutableListOf<Device>()
+
+    var cachedResult: Long? = null
 
     fun connect(toConnect: List<Device>) {
         connectedDevices.addAll(toConnect)
     }
 
-    fun countWaysToOut(): Int {
-        if(this.name == "out") {
-            return 1
+    fun countWaysTo(goal: String): Long {
+        if (cachedResult == null) {
+            cachedResult = if (this.name == goal) {
+                1L
+            } else if (this.connectedDevices.isEmpty()) {
+                0L
+            } else connectedDevices.sumOf { it.countWaysTo(goal) }
         }
-        if(this.connectedDevices.isEmpty()) {
-            return 0
-        }
-        return connectedDevices.sumOf { it.countWaysToOut() }
+        return cachedResult!!
     }
-
-    fun countWaysToOutRememberDacFft(dacVisited: Boolean, fftVisited: Boolean): Int {
-        if(this.name == "out") {
-            return if(dacVisited && fftVisited) 1 else 0
-        }
-        if(this.connectedDevices.isEmpty()) {
-            return 0
-        }
-        return connectedDevices.sumOf { it.countWaysToOutRememberDacFft(dacVisited || it.name == "dac", fftVisited || it.name == "fft") }
-    }
-
 
 }
+
+// fromFftToDac = 1 / fromDacToFft = 0
+// 1 * 1 * 2 = 2
+// Answer is 2
