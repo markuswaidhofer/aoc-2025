@@ -70,38 +70,43 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
         }
     }
 
-    fun calculateMinSwitchesJoltage(): Int {
-        var buttonPresses = 0
-        var multiply = 1
-        var remainingJoltageRequirements = expectedJoltageRequirements.toMutableList()
+    var current = 0
 
-        while(remainingJoltageRequirements.any { it != 0 }) {
-            val unevenAsIndicatorLights = getUnevenAsIndicatorLights(remainingJoltageRequirements)
-            val possibleButtonCombinations = findCombinations(unevenAsIndicatorLights)
+    fun calculateMinSwitchesJoltage(requirements: List<Int> = expectedJoltageRequirements, multiply: Int = 1): Int {
+        current ++
 
-            val buttonsToPress = possibleButtonCombinations.first { remainingJoltageRequirements.doesNotGoNegativeIfPressed(it) }
+        val unevenAsIndicatorLights = getUnevenAsIndicatorLights(requirements)
+        val possibleButtonCombinations =
+            findCombinations(unevenAsIndicatorLights).filter { requirements.doesNotGoNegativeIfPressed(it) }
+
+        val min = possibleButtonCombinations.minOfOrNull { buttonsToPress ->
+            val remainingJoltageRequirements = requirements.toMutableList()
             buttonsToPress.forEach { button ->
                 remainingJoltageRequirements.decrease(button)
             }
-            buttonPresses += buttonsToPress.size * multiply
-
-
-            multiply *= 2
-            remainingJoltageRequirements = remainingJoltageRequirements.map { it / 2 }.toMutableList()
+            val buttonPresses = buttonsToPress.size * multiply
+            if (remainingJoltageRequirements.all { it == 0 }) {
+                buttonPresses
+            } else {
+                val newRemaininJoltageRequirements = remainingJoltageRequirements.map { it / 2 }
+                val newMultiply = multiply * 2
+                buttonPresses + calculateMinSwitchesJoltage(newRemaininJoltageRequirements, newMultiply)
+            }
         }
 
-        return buttonPresses
+        return min ?: 100_000 // if we found no possible combination, we return a big valuer to rule this one out
     }
 
-    private fun getUnevenAsIndicatorLights(remainingJoltageRequirements: MutableList<Int>): String =
+    private fun getUnevenAsIndicatorLights(remainingJoltageRequirements: List<Int>): String =
         remainingJoltageRequirements.map { if (it % 2 == 0) OFF else ON }.joinToString("")
 
     private fun turnedOffIndicatorLights(): MutableList<Char> = expectedIndicatorLights.map { '.' }.toMutableList()
 
-    private fun actualEqualsExpected(expectedIndicatorLights: String, actualIndicatorLights: List<Char>) = actualIndicatorLights.joinToString("") == expectedIndicatorLights
+    private fun actualEqualsExpected(expectedIndicatorLights: String, actualIndicatorLights: List<Char>) =
+        actualIndicatorLights.joinToString("") == expectedIndicatorLights
 }
 
-private fun MutableList<Int>.doesNotGoNegativeIfPressed(buttons: List<Button>): Boolean {
+private fun List<Int>.doesNotGoNegativeIfPressed(buttons: List<Button>): Boolean {
     val copy = mutableListOf<Int>()
     copy.addAll(this)
 
