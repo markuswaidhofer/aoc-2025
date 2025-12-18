@@ -7,8 +7,6 @@ private const val OFF = '.'
 
 class Machine(val expectedIndicatorLights: String, val expectedJoltageRequirements: List<Int>, val buttons: List<Button>) {
 
-    var minJoltageButtonPresses: Int = Int.MAX_VALUE
-
     fun calculateMinSwitches(): Int {
         var min = Int.MAX_VALUE
         val possibleCombinations = 2.0.pow(buttons.size).toInt()
@@ -26,7 +24,7 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
                 }
             }
 
-            if (actualEqualsExpected(actualIndicatorLights) && buttonPresses < min) {
+            if (actualEqualsExpected(expectedIndicatorLights, actualIndicatorLights) && buttonPresses < min) {
                 min = buttonPresses
             }
 
@@ -36,53 +34,32 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
         return min
     }
 
-    fun calculateMinSwitchesJoltage(): Int {
-        val currentJoltages = expectedIndicatorLights.map { 0 }.toMutableList()
+    fun findCombinations(expectedIndicatorLights: String): List<List<Button>> {
+        val combinations: MutableList<List<Button>> = mutableListOf()
+        val possibleCombinations = 2.0.pow(buttons.size).toInt()
 
-        val currentButton = 0
-        val buttonPresses = 0
-        // println("Goal: " + expectedJoltageRequirements)
-        pressButton(currentButton, buttonPresses, currentJoltages)
+        var combination = 0
+        while (combination < possibleCombinations) {
+            val actualIndicatorLights: MutableList<Char> = turnedOffIndicatorLights()
+            val pressedButtons = mutableListOf<Button>()
 
-        return minJoltageButtonPresses
-    }
-
-    fun pressButton(currentButtonIndex: Int, totalButtonPresses: Int, currentJoltages: MutableList<Int>) {
-        val currentButton = buttons[currentButtonIndex]
-        // println("Handling button $currentButtonIndex = $currentButton")
-        // println("We are at $currentJoltages")
-
-        // repeat pushing the button until no longer possible
-        var currentButtonPresses = 0
-        var newTotalButtonPresses = totalButtonPresses
-        while (!joltagesExceeded(currentJoltages)) {
-            currentJoltages.increase(currentButton)
-            newTotalButtonPresses++
-            currentButtonPresses++
-            // println("Tapped button and now we are at $currentJoltages")
-
-            if (currentJoltages == expectedJoltageRequirements && newTotalButtonPresses < minJoltageButtonPresses) {
-                minJoltageButtonPresses = newTotalButtonPresses
-                // println("Found solution, new minimum = $newTotalButtonPresses")
+            val useButton = List(buttons.size) { (combination shr it) and 1 == 1 }
+            buttons.forEachIndexed { buttonIndex, button ->
+                if (useButton[buttonIndex]) {
+                    pushButton(button, actualIndicatorLights)
+                    pressedButtons.add(button)
+                }
             }
+
+            if (actualEqualsExpected(expectedIndicatorLights, actualIndicatorLights)) {
+                combinations.add(pressedButtons)
+            }
+
+            combination++
         }
 
-        // remove one button press of current and move to next button
-        while (currentButtonPresses > 0) {
-            currentJoltages.decrease(currentButton)
-            // println("Removed button and now we are at $currentJoltages")
-            newTotalButtonPresses--
-            currentButtonPresses--
-            if (currentButtonIndex + 1 < buttons.size) { // there is a next button
-                pressButton(currentButtonIndex + 1, newTotalButtonPresses, currentJoltages)
-            }
-        }
-
-        // println("Done with $currentButtonIndex")
+        return combinations
     }
-
-    private fun joltagesExceeded(currentJoltages: MutableList<Int>): Boolean =
-        currentJoltages.mapIndexed { index, joltage -> joltage > expectedJoltageRequirements[index] }.any { it }
 
     private fun pushButton(button: Button, actualIndicatorLights: MutableList<Char>) {
         button.switches.forEach { switchIndex ->
@@ -93,9 +70,43 @@ class Machine(val expectedIndicatorLights: String, val expectedJoltageRequiremen
         }
     }
 
+    fun calculateMinSwitchesJoltage(): Int {
+        var buttonPresses = 0
+        var multiply = 1
+        var remainingJoltageRequirements = expectedJoltageRequirements.toMutableList()
+
+        while(remainingJoltageRequirements.any { it != 0 }) {
+            val unevenAsIndicatorLights = getUnevenAsIndicatorLights(remainingJoltageRequirements)
+            val possibleButtonCombinations = findCombinations(unevenAsIndicatorLights)
+
+            val buttonsToPress = possibleButtonCombinations.first { remainingJoltageRequirements.doesNotGoNegativeIfPressed(it) }
+            buttonsToPress.forEach { button ->
+                remainingJoltageRequirements.decrease(button)
+            }
+            buttonPresses += buttonsToPress.size * multiply
+
+
+            multiply *= 2
+            remainingJoltageRequirements = remainingJoltageRequirements.map { it / 2 }.toMutableList()
+        }
+
+        return buttonPresses
+    }
+
+    private fun getUnevenAsIndicatorLights(remainingJoltageRequirements: MutableList<Int>): String =
+        remainingJoltageRequirements.map { if (it % 2 == 0) OFF else ON }.joinToString("")
+
     private fun turnedOffIndicatorLights(): MutableList<Char> = expectedIndicatorLights.map { '.' }.toMutableList()
 
-    private fun actualEqualsExpected(actualIndicatorLights: List<Char>) = actualIndicatorLights.joinToString("") == expectedIndicatorLights
+    private fun actualEqualsExpected(expectedIndicatorLights: String, actualIndicatorLights: List<Char>) = actualIndicatorLights.joinToString("") == expectedIndicatorLights
+}
+
+private fun MutableList<Int>.doesNotGoNegativeIfPressed(buttons: List<Button>): Boolean {
+    val copy = mutableListOf<Int>()
+    copy.addAll(this)
+
+    buttons.forEach { copy.decrease(it) }
+    return copy.none { it < 0 }
 }
 
 data class Button(val switches: List<Int>)
